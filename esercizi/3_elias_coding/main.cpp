@@ -18,6 +18,7 @@ void syntax() {
 	exit(EXIT_FAILURE);
 				
 }
+
 void error(const std::string& s) {
 	std::cout << s;
 	exit(EXIT_FAILURE);

@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <algorithm>
 
 
 //speaking about kind of pointer such as shared_ptr<int>
@@ -72,11 +73,12 @@ template <typename T>
 struct node {
 	T val_;
 	uint64_t freq_;
-	node* left_;
-	node* right_;
+	node* left_ = nullptr;
+	node* right_ = nullptr;
 
-	node(T& val, uint64_t freq) : val_(val), freq_(freq) {};
-
+	node(T val, uint64_t freq) : val_(val), freq_(freq) {};
+	//dai due nodi devo generarne uno nuovo (il nodo figlio)
+	node(node* a, node* b): left_(a), right_(b), freq_(a-> freq_ + b-> freq_) {};
 
 };
 
@@ -87,21 +89,50 @@ void compression(const std::string& fin,const std::string& fout) {
 		exit(EXIT_FAILURE);
 	}
 	//vector con i numeri da contare
-	std::vector<uint8_t> numbers{
+	std::vector<uint64_t> numbers{
 		std::istream_iterator<uint8_t>(is),
 		std::istream_iterator<uint8_t>()
 	};
 
 	//conto le frequenze dei numeri
-	frequency <uint64_t> count;
+	frequency <uint8_t> count;
 	for (const auto& c : numbers) {
 		count(c);
 	}
+	//creo tutti i nodi e li ordino for huffman tree
+	std::vector<node<uint8_t>*> tree; //voglio puntatori perchè è piu facile sortare i nodi come puntatori
+	for (const auto& pair : count.counter_)
+	{
+		tree.push_back(new node<uint8_t>(pair.first, pair.second));
+	}
 
-	//create the huffman nodes
+	std::sort(tree.begin(), tree.end(), 
+		[](const node<uint8_t>* a, const node<uint8_t>* b) 
+			{return a->freq_ > b->freq_; 
+		}
+	);
 
-
-
+	// aggrego toglo i due nodi in fondo e sommo le frequenze per ottenere quella del nodo figlio finche in tree c'è un solo nodo
+	while (tree.size() > 1) {
+		//aggregogli ultii due nodi e li tolgo dall'albero
+		node<uint8_t>* a = tree.back();
+		tree.pop_back();
+		node<uint8_t>* b = tree.back();
+		tree.pop_back();
+		//creo new node dai due nodi aggregati
+		node<uint8_t>* new_node = new node(a, b); 
+		//add new node nella posizione giusta
+		
+		auto it = tree.begin();
+		for (;it != tree.end(); ++it) { //it in questo caso punta a un puntatore
+			if (new_node->freq_ >= (*it)->freq_)
+				break;
+		}
+		tree.insert(it, new_node);
+			
+		}
+			
+	
 	std::ofstream os(fout, std::ios::binary);
 	if (!os) {
 		error("impossible to open" + fout + "in write mode");

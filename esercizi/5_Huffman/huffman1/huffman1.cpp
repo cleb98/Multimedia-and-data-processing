@@ -75,6 +75,11 @@ public:
 	}
 	std::ostream& flush(uint8_t pad = 0) {
 		//write pad in buffer to fill it
+		while (nbits_ > 0) // vedere quale altra condizione potrei metterci
+		{
+			writebit(pad);
+		}
+		
 	}
 	
 	

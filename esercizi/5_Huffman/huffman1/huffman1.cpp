@@ -30,20 +30,52 @@ void error(const std::string& s) {
 	exit(EXIT_FAILURE);
 }
 
+template <typename T>
+std::istream& raw_read(std::istream& is, T& val) {
+	return is.read(reinterpret_cast<char*> (&val), sizeof(T)); //POTREBBE DARE ERRORI LA SIZEOF(T) 
+}
 class bitreader
 {
+	uint8_t buffer_ = 0;
+	uint8_t nb_ = 0;//num bits in the buffer
+	std::istream& is_;
+
+	uint8_t readbit() { // 
+		// se nb_ = 0 fillo il buffer 
+		// decremento nb_
+		// shifto il buffer di nb_bit per ottenere il bit corrispondente ai |nb_| bit rimasti da leggere
+		if (nb_ == 0)
+		{
+			raw_read(is_, buffer_); //buffer_ = is.get();
+			nb_ = 8;
+		}
+		--nb_;
+		return (buffer_ >> nb_) & 1;
+	}
+
 
 
 public:
-	bitreader() {};
-
+	bitreader(std::istream& is): is_(is){};
 	~bitreader() {};
+	uint64_t operator() (size_t bit_to_r){ // bit_to_r -> amount of bit to read sequentially
+		uint64_t val = 0;
+		while (bit_to_r --> 0)
+		{
+			val = (val << 1) | readbit();
+		}
+		return val;
+	}
+
 };
 
 
+template <typename T>
+std::ostream& raw_write(std::ostream& os,const T& val) {
+	return os.write(reinterpret_cast<const char*> (&val), sizeof(T));
+}
 class bitwriter
 {
-	
 	uint8_t nbits_ = 0;
 	uint8_t buffer_ = 0;
 	std::ostream& os_;
@@ -57,8 +89,6 @@ class bitwriter
 			nbits_ = 0; 
 		}
 	}
-
-
 public:
 
 	bitwriter(std::ostream& os): os_(os){};
@@ -68,10 +98,10 @@ public:
 	}
 	std::ostream& operator() (uint64_t val, uint64_t n_bit) {
 		while (n_bit --> 0)	{
-			//scrivo val con nbit 
-			//dal bit piu sginificativo al meno
+			//scrivo val con nbit, dal bit piu sginificativo al meno
 			writebit(val >> n_bit);
 		}
+		return os_;
 	}
 	std::ostream& flush(uint8_t pad = 0) {
 		//write pad in buffer to fill it
@@ -79,7 +109,7 @@ public:
 		{
 			writebit(pad);
 		}
-		
+		return os_;
 	}
 	
 	
@@ -154,9 +184,13 @@ void compression(const std::string& fin,const std::string& fout) {
 	}
 	//creo tutti i nodi e li ordino for huffman tree
 	std::vector<node<uint8_t>*> tree; //voglio puntatori perchè è piu facile sortare i nodi come puntatori
+	std::vector<std::unique_ptr<node<uint8_t>>> storage; 
 	for (const auto& pair : count.counter_)
 	{
-		tree.push_back(new node<uint8_t>(pair.first, pair.second));
+		node<uint8_t>* n = new node<uint8_t>(pair.first, pair.second);
+		storage.emplace_back(n);//dealloca i ptr creat con new quando saranno out of scope
+		tree.push_back(n);
+
 	}
 
 	std::sort(tree.begin(), tree.end(), 
@@ -174,6 +208,7 @@ void compression(const std::string& fin,const std::string& fout) {
 		tree.pop_back();
 		//creo new node dai due nodi aggregati
 		node<uint8_t>* new_node = new node(a, b); 
+		storage.emplace_back(new_node);
 		//add new node nella posizione giusta
 		
 		//first way to insert the new node in the right psotition with O(N) cost
@@ -208,10 +243,10 @@ void compression(const std::string& fin,const std::string& fout) {
 			*/ 
 		}
 	// prendo il nodo root
-	node<uint8_t>* root = tree.back(); // tree.front(); tree[0]; *tree.begin() 
+	//node<uint8_t>* root = tree.back(); // tree.front(); tree[0]; *tree.begin() 
 	//creo huffman_table
 	huffman table;
-	table.compute_codes(root);
+	table.compute_codes(tree.back());
 
 
 	std::ofstream os(fout, std::ios::binary);
@@ -224,8 +259,8 @@ void compression(const std::string& fin,const std::string& fout) {
 	
 	//tableentries| uin8_t | Number of items in the following Huffman table
 	uint8_t n_entries = static_cast<uint8_t> (table.codes_table.size());
-	os << n_entries;
-
+	//os << n_entries; //first way(not sure it works)
+	os.put(n_entries); // way that works for sure
 	//HuffmanTable| TableEntries triplets(sym = 8,bit, len = 5 bit,code = len)
 	bitwriter bw(os);
 	for (const auto& it : table.codes_table) {
@@ -235,16 +270,32 @@ void compression(const std::string& fin,const std::string& fout) {
 
 	}
 	//NumSymbols| 32 bit unsigned integer stored in	big endian| Number of symbols encoded in the file.
+	uint32_t numsym = numbers.size();
+	bw(numsym, 32);
 	//Data| NumSymbols Huffman codes | Values encoded with Huffman codes, according to the previous	table
+	for (auto& c : numbers) {
+		//scrivo il codice corrispondente a c
+		auto len_code = table.codes_table[c]; //pair(len, code)
+		bw(len_code.second, len_code.first ); //scrivo il code con lencode bit
+	}
+	//free the memory used by the pointer created with new: 
+	 //we can use a unique_ptr as structur wherw will be added every new ptr and this stuctur will delete it for us
+}
 
+void decompression(const std::string& fin, const std::string& fout) {
+	std::ifstream is(fin, std::ios::binary);
+	if (!is) {	error("impossible to open" + fin + "in read mode");	}
+	std::ofstream os(fout, std::ios::binary);
+	if (!os) {	error("impossible to open" + fout + "in write mode");}
+	//leggere con le condizioni, e mentre leggo un certo num di bit vado a scrivere testualmente con cout
 
 	
 
 }
 
-
 int main(int argc, char* argv[])
 {
+	{
 	std::string command = argv[1]; // c | d
 	if (command == "c") {
 		std::cout << "compression";
@@ -252,11 +303,12 @@ int main(int argc, char* argv[])
 	}
 	else if (command == "d") {
 		std::cout << "decompression";
+		decompression(argv[2], argv[3]);
 	}
 	else syntax();
 
-	
-	_CrtDumpMemoryLeaks(); // Check for memory leaks
+
+	}_CrtDumpMemoryLeaks(); // Check for memory leaks
 	return EXIT_SUCCESS;
 }
 

@@ -6,7 +6,8 @@
 #include <unordered_map>
 #include <algorithm>
 #include <utility> //std::pair
-
+#include <numeric>
+#include <ranges>
 
 void syntax() {
 	std::cout << "Syntax error: \n",
@@ -69,7 +70,6 @@ public:
 
 };
 
-
 template <typename T>
 std::ostream& raw_write(std::ostream& os,const T& val) {
 	return os.write(reinterpret_cast<const char*> (&val), sizeof(T));
@@ -130,6 +130,26 @@ struct frequency {
 	auto size() {
 		return counter_.size();
 	}
+	
+	double entropy() {
+		double entropy = 0;
+		//2 way to compute the total number or occurencies in the input file
+		//1. accumulate + lambda
+		auto tot = std::accumulate(counter_.begin(), counter_.end(), 0, [](int tot, std::pair<const T, CT>& p){ 
+			return tot + p.second;
+			} 
+		);
+		//2. iterator on unordered_map 
+		//int tot = 0;
+		//for (auto& c : counter_) {
+		//	tot += int(c.second); 
+		//}
+		for (const auto& c : counter_) {
+			double p = static_cast <double> (c.second) / tot;
+			entropy -= p * std::log2(p);
+		}
+		return entropy;
+	}
 };
 
 template <typename T>
@@ -182,6 +202,8 @@ void compression(const std::string& fin,const std::string& fout) {
 	for (const auto& c : numbers) {
 		count(c);
 	}
+	std::cout << "\n entropy " << count.entropy();
+
 	//creo tutti i nodi e li ordino for huffman tree
 	std::vector<node<uint8_t>*> tree; //voglio puntatori perchè è piu facile sortare i nodi come puntatori
 	std::vector<std::unique_ptr<node<uint8_t>>> storage; 
@@ -242,11 +264,11 @@ void compression(const std::string& fin,const std::string& fout) {
 		Tuttavia, il vantaggio del secondo metodo è nella velocità con cui trova la posizione di inserimento, migliorando così l'efficienza complessiva del processo.
 			*/ 
 		}
-	// prendo il nodo root
+	//nodo root
 	//node<uint8_t>* root = tree.back(); // tree.front(); tree[0]; *tree.begin() 
 	//creo huffman_table
 	huffman table;
-	table.compute_codes(tree.back());
+	table.compute_codes(tree.back()); //tree.back() è nodo root
 
 
 	std::ofstream os(fout, std::ios::binary);
@@ -288,9 +310,70 @@ void decompression(const std::string& fin, const std::string& fout) {
 	std::ofstream os(fout, std::ios::binary);
 	if (!os) {	error("impossible to open" + fout + "in write mode");}
 	//leggere con le condizioni, e mentre leggo un certo num di bit vado a scrivere testualmente con cout
-
+	std::string magic(8, ' ');
+	is.read(magic.data(), sizeof(magic.data()));
+	if (magic != "HUFFMAN1") {
+		error("decompression is failed");
+	}
+	bitreader br(is);
+	//dcompress number of items in the following Huffman table (8bit)
+	size_t table_size = br(8);
+	if (table_size == 0) {
+		table_size = 256;
+	}
+	// decompress a table in a unordered_map
+	using triplet = std::pair<uint8_t, std::pair<uint64_t, uint64_t>>; //{ sym, { len, code } }
+	std::vector<triplet> table;
+	for (size_t i = 0; i < table_size; i++) {
+		uint8_t sym = static_cast<uint8_t> (br(8));
+		uint64_t len = br(5);
+		uint64_t code = br(len);
+		std::pair<uint64_t, uint64_t> len_code = { len , code };
+		table.push_back({ sym, len_code });
+	}
 	
+	size_t numsym = br(32);
+	//sort della tabella per confrontare per primi i codici più corti(più probabili)
+	std::sort(table.begin(), table.end(),
+		[](const triplet& a,const triplet& b){
+			//sym with same len are previously sorted alphabetically
+			if (a.second.first == b.second.first) 
+				return a.first < b.first;
+			//sort for their len
+			return a.second.first < b.second.first;
+		}
+	);
+	
+	//leggo i simboli encodati e li traduco
+	for (size_t i = 0; i < numsym; i++)
+	{
+		uint64_t curcode = 0;
+		uint64_t curlen = 0;
+		//per ogni simbolo nel file prima della compressione
+		size_t pos;
+		for (pos = 0; pos < table.size(); pos++) { //table[pos] = {sym, {len, code}}
+			auto sym = table[pos].first;
+			auto len = table[pos].second.first;
+			auto code = table[pos].second.second;
+			//leggo len bit con br se curlen è 0, 
+			// se devo confrontare il curcode con il code di un altro simbolo con stessa len dei bit gia letti,
+			// non devo rileggere nulla con br
+			auto bitread = len - curlen;
+			curcode = (curcode << bitread) | br(bitread);
+			// se devo leggere 3 bit ma ne o gia letto due devo andare avanti solo al prox giro di uno per ricalcolare curcode
+			curlen = len; 
+			if (curcode == code) {
+				os.put(sym);
+				break;
+			}
+		//should be a matches at least with last sym of of the table
+		//pos may be at max (table.size()-1)
+		if (pos == table.size()){
+			error("no symbol to decode has been found");
+			}
 
+		}
+	}
 }
 
 int main(int argc, char* argv[])

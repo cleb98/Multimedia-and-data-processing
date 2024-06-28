@@ -3,7 +3,7 @@
 #include <fstream>
 #include <unordered_map>
 #include <sstream>
-
+#include <cstdint>
 
 template <typename T>
 std::ostream& raw_write(std::ostream& os, const T& val, size_t size = sizeof(T)) 
@@ -71,11 +71,13 @@ std::string base64_decode(const std::string& input) {
         table['0' + i] = i;
     }*/
 
+    //from A to Z
     for (size_t i = 0; i <= 25; i++) {
         table['A' + i] = i;
     }
+    //from a to z
     size_t offset = 26;
-    for (size_t i = 0; i <= 25; i++) { // è sbagliato perche cosi farei a +26 al primo giro che nn è b!
+    for (size_t i = 0; i <= 25; i++) { 
         table['a' + i] = i + offset;
     }
 
@@ -94,9 +96,9 @@ std::string base64_decode(const std::string& input) {
         if (c == '=') {
             break;
         }
-        auto it = table.find(c);
+        auto& it = table.find(c);
         if (it != table.end()) {
-            bw.write(it->second, 6);
+            bw.write(it.second, 6);
         }
         else
         {
@@ -115,13 +117,13 @@ std::string base64_decode(const std::string& input) {
 
 
 
-//int main() {
-//    //std::string input = "TWFu"; //man
-//    std::string output;
-//    std::string input = "TQ=="; 
-//    //std::string input = "TWE=";
-//    output = base64_decode(input);
-//    std::cout << output << "\n";
-//    
-//    return 0;
-//}
+int main() {
+    //std::string input = "TWFu"; //man
+    std::string output;
+    std::string input = "TQ=="; 
+    //std::string input = "TWE=";
+    output = base64_decode(input);
+    std::cout << output << "\n";
+    
+    return 0;
+}

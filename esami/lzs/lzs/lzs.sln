@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.10.35013.160
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lzs", "lzs.vcxproj", "{D3655809-FF5E-4CBE-BA19-CA61D8A7317E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D3655809-FF5E-4CBE-BA19-CA61D8A7317E}.Debug|x64.ActiveCfg = Debug|x64
+		{D3655809-FF5E-4CBE-BA19-CA61D8A7317E}.Debug|x64.Build.0 = Debug|x64
+		{D3655809-FF5E-4CBE-BA19-CA61D8A7317E}.Debug|x86.ActiveCfg = Debug|Win32
+		{D3655809-FF5E-4CBE-BA19-CA61D8A7317E}.Debug|x86.Build.0 = Debug|Win32
+		{D3655809-FF5E-4CBE-BA19-CA61D8A7317E}.Release|x64.ActiveCfg = Release|x64
+		{D3655809-FF5E-4CBE-BA19-CA61D8A7317E}.Release|x64.Build.0 = Release|x64
+		{D3655809-FF5E-4CBE-BA19-CA61D8A7317E}.Release|x86.ActiveCfg = Release|Win32
+		{D3655809-FF5E-4CBE-BA19-CA61D8A7317E}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {7B2A70DE-E13F-4232-A600-39B3673BDFC6}
+	EndGlobalSection
+EndGlobal

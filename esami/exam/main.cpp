@@ -86,10 +86,14 @@ struct {
 */
 
 int main(int argc, char* argv[]) {
-	std::string command = argv[1];
-	if (command == "qoa_decomp") {
-		std::cout << "decompressing qoa file";
+	if (argc != 3) {
+		error("argc != 3");
 	}
+
+	//std::string command = argv[1];
+	//if (command == "qoa_decomp") {
+	//	std::cout << "decompressing qoa file";
+	//}
 	std::string fin = argv[2];
 	std::ifstream is(argv[2], std::ios::binary);
 	if (!is) {
@@ -104,6 +108,7 @@ int main(int argc, char* argv[]) {
 	bitreader br(is);
 	while (true)
 	{
+		//prima bisogna leggere
 		if (!is)
 			break;
 

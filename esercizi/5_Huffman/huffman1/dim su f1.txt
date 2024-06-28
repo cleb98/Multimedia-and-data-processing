@@ -19,7 +19,7 @@ mat | vect 111 111 111
 
 @mem(&img.data_[0], UINT8, 3, img.cols_, img.rows_, img.cols_ * 3)
 
-
+@mem(&img.data_[0], UINT8, 1, img.cols_, img.rows_, img.cols_)
 
 
 

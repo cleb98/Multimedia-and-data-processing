@@ -1,0 +1,26 @@
+
+ho slice di 64 bit -> decode -> 20 sample of 16 bit(?)
+
+sample = 3.2 bit of storage space
+
+qoa file = 8Byte file_header + num Frame 
+at least 1 FRAME;
+
+FRAME = 
+- at least one channel;
+- at least one sample with sample rate fc = [1:16777215]
+	- 8Byte frame_header 
+	- 16B enc_dec state
+	- 256 slice (da 8byte?
+
+
+x each channel:
+
+- last frame can contain < 256 slices-> [1:256]
+- the other must contain 256!
+- last slice in last frame:
+	- can be < 20 sample (64 bit/6Byte)
+	- 8 bytes wides 
+		-> unused bytes = 0;
+
+

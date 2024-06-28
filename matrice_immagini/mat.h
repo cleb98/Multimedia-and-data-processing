@@ -30,15 +30,21 @@ public:
 */
 	//per accedere un elemento della matrice salvato in array lineare (es: m(0,2)->data_[0*3+2]= data_[2])
 	//if object is const, we can't modify the value of the element
-	T& operator()(int r, int c) { return data_[r*cols_ + c]; }
-	const T& operator()(int r, int c) const { return data_[r*cols_ + c]; }
+	T& operator()(int r, int c) { r
+		eturn data_[r*cols_ + c]; 
+	}
+	const T& operator()(int r, int c) const { 
+		return data_[r*cols_ + c]; 
+	}
 
 	//acces data as vector of pixels (m[1])
 	T& operator[](int i) {
 		return data_[i];
 	}
 
-	const T& operator[](int i) const { return data_[i]; }
+	const T& operator[](int i) const {
+		return data_[i]; 
+	}
 
 	//boolean method to see if the img is empty
 	bool empty() const { return data_.empty(); }

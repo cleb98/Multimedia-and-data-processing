@@ -91,7 +91,7 @@ struct bmp_info {
 };
 
 
-bool load_bmp(std::istream& is, mat<rgb>& img) {
+bool load_bmp24(std::istream& is, mat<rgb>& img) {
 	using namespace std;
 
 	bmp_header header;
@@ -164,6 +164,94 @@ bool load_bmp(std::istream& is, mat<rgb>& img) {
 	return true;
 }
 
+bool load_bmp8(std::istream& is, mat<rgb>& img) {
+	using namespace std;
+
+	bmp_header header;
+	rawread(is, header.magic);
+	if (header.magic != 0x4D42) {
+		error("BMP identiefier is not BM");
+	}
+	rawread(is, header.fsize);
+	rawread(is, header.res1);
+	rawread(is, header.res2);
+	rawread(is, header.offset);
+
+	//infoheader 
+	uint32_t hsize;
+	rawread(is, hsize);
+	if (hsize != 40) {
+		error("Wrong header size\n");
+	}
+	int32_t w, h;
+	rawread(is, w);
+	rawread(is, h);
+	img.resize(h, w);
+
+	uint16_t plane, bitppx;
+	rawread(is, plane);
+	if (plane != 1) {
+		error("Wrong color planes number\n");
+	}
+	rawread(is, bitppx);
+	if (bitppx != 8) {
+		error("uncorrect number of bits per pixel");
+	}
+	uint32_t method, img_size, hres, vres, num_colors, dummy;
+	rawread(is, method);
+	//if (method != 0) {
+	//	error(" not BI_RGB compression used");
+	//}
+	//discard 12 byte
+	rawread(is, img_size);
+	rawread(is, hres);
+	rawread(is, vres);
+
+	rawread(is, num_colors);
+	if (num_colors == 0) {
+		num_colors = pow(2, bitppx);
+	}
+
+	rawread(is, dummy);
+	//read table 
+	using quad = array<uint8_t, 4>;
+	std::vector<quad> ctable;
+
+	quad pxl;
+	for (int i = 0; i < num_colors; i++) {
+		pxl[0] = is.get();
+		pxl[1] = is.get();
+		pxl[2] = is.get();
+		pxl[3] = is.get();
+		ctable.push_back(pxl);
+	}
+
+	// 1)exctract reversed img
+	int remaining = (img.cols()) % 4;
+	int padsize = 0;
+	if (remaining > 0) {
+		padsize = 4 - remaining;
+	}
+
+	uint8_t index;
+	for (int r = img.rows() - 1; r >= 0; r--) {
+		for (int c = 0; c < img.cols(); c++) {
+			index = is.get();
+			img(r, c)[2] = ctable[index][0];  //B G R pad
+			img(r, c)[1] = ctable[index][1];
+			img(r, c)[0] = ctable[index][2];
+
+		}
+		if (!is)
+			return false;
+		for (int j = 0; j < padsize; j++) {
+			is.get();
+		}
+	}
+	return true;
+
+}
+
 
 bool savepam(std::ostream& os, const mat<rgb>& img) {
 	using namespace std;
@@ -207,7 +295,11 @@ int main(int argc, char** argv) {
 	}
 
 	mat<rgb> img;
-	if (!load_bmp(is, img)) {
+	//if (!load_bmp24(is, img)) {
+	//	error("impossible to load BMP file");
+	//}
+
+	if (!load_bmp8(is, img)) {
 		error("impossible to load BMP file");
 	}
 

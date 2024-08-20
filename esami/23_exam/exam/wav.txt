@@ -1,5 +1,0 @@
-# wav consideration
-
-File size = Size of the overall file - 8 bytes,
-
-Size of the overall file = FS + 8;
